@@ -1,13 +1,26 @@
+/**
+ * FavoritesPage Component
+ * Displays all favorited restaurants in a grid layout
+ * Shows empty state when no favorites exist
+ */
+
 import { useApp } from '../context/AppContext'
 import RestaurantCard from '../components/RestaurantCard'
 import EmptyState from '../components/EmptyState'
 import { motion } from 'framer-motion'
 
+/**
+ * FavoritesPage Component
+ * Renders a grid of favorited restaurants
+ * 
+ * @returns {JSX.Element} Favorites page component
+ */
 export default function FavoritesPage() {
   const { state } = useApp()
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      {/* Page Header */}
       <motion.div
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -23,6 +36,7 @@ export default function FavoritesPage() {
         </p>
       </motion.div>
 
+      {/* Favorites Grid or Empty State */}
       {state.favorites.length === 0 ? (
         <EmptyState
           emoji="🍕"
@@ -38,4 +52,3 @@ export default function FavoritesPage() {
     </div>
   )
 }
-

@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Geocoding API Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .test-container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        input {
+            width: 100%;
+            padding: 12px;
+            margin: 10px 0;
+            border: 2px solid #ddd;
+            border-radius: 5px;
+            font-size: 16px;
+        }
+        button {
+            background: #F59E0B;
+            color: white;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 10px 5px;
+        }
+        button:hover {
+            background: #d97706;
+        }
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+        .result {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 5px;
+            background: #f0f9ff;
+            border-left: 4px solid #3b82f6;
+        }
+        .error {
+            background: #fef2f2;
+            border-left-color: #ef4444;
+            color: #991b1b;
+        }
+        .success {
+            background: #f0fdf4;
+            border-left-color: #22c55e;
+            color: #166534;
+        }
+        .loading {
+            color: #6366f1;
+        }
+        pre {
+            background: #1e293b;
+            color: #e2e8f0;
+            padding: 15px;
+            border-radius: 5px;
+            overflow-x: auto;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <h1>🧪 Geocoding API Test</h1>
+        <p>Enter a location name to test the geocoding functionality:</p>
+        
+        <input 
+            type="text" 
+            id="locationInput" 
+            placeholder="e.g., New York, Kuala Lumpur, Tokyo"
+            value="Kuala Lumpur"
+        >
+        
+        <div>
+            <button onclick="testGeocoding()">Test Geocoding</button>
+            <button onclick="testMultiple()">Test Multiple Locations</button>
+        </div>
+        
+        <div id="result"></div>
+    </div>
+
+    <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyAfzZeFH6mmbTzDjhRpwoN1FlhV1FfgUOY&libraries=places"></script>
+    <script>
+        function geocodeAddress(address) {
+            return new Promise((resolve, reject) => {
+                if (!window.google || !window.google.maps || !window.google.maps.Geocoder) {
+                    reject(new Error('Google Maps API is not loaded yet. Please wait a moment and try again.'))
+                    return
+                }
+
+                const geocoder = new window.google.maps.Geocoder()
+
+                geocoder.geocode({ address: address }, (results, status) => {
+                    if (status === window.google.maps.GeocoderStatus.OK && results && results.length > 0) {
+                        const location = results[0].geometry.location
+                        resolve({
+                            lat: location.lat(),
+                            lng: location.lng(),
+                            formatted_address: results[0].formatted_address
+                        })
+                    } else if (status === window.google.maps.GeocoderStatus.ZERO_RESULTS) {
+                        reject(new Error('Location not found. Please try a different area or town name.'))
+                    } else if (status === window.google.maps.GeocoderStatus.REQUEST_DENIED) {
+                        reject(new Error('Geocoding request denied. Please check your API key settings.'))
+                    } else {
+                        reject(new Error(`Geocoding failed: ${status}`))
+                    }
+                })
+            })
+        }
+
+        function displayResult(result, isError = false) {
+            const resultDiv = document.getElementById('result')
+            const className = isError ? 'error' : 'success'
+            resultDiv.className = `result ${className}`
+            resultDiv.innerHTML = result
+        }
+
+        async function testGeocoding() {
+            const input = document.getElementById('locationInput')
+            const location = input.value.trim()
+            
+            if (!location) {
+                displayResult('<strong>❌ Error:</strong> Please enter a location name', true)
+                return
+            }
+
+            displayResult('<div class="loading">⏳ Testing geocoding for: <strong>' + location + '</strong>...</div>')
+
+            try {
+                const startTime = Date.now()
+                const result = await geocodeAddress(location)
+                const endTime = Date.now()
+                const duration = endTime - startTime
+
+                const resultHtml = `
+                    <strong>✅ Success!</strong><br><br>
+                    <strong>Location:</strong> ${location}<br>
+                    <strong>Formatted Address:</strong> ${result.formatted_address}<br>
+                    <strong>Latitude:</strong> ${result.lat}<br>
+                    <strong>Longitude:</strong> ${result.lng}<br>
+                    <strong>Response Time:</strong> ${duration}ms<br><br>
+                    <strong>Coordinates:</strong>
+                    <pre>{ lat: ${result.lat}, lng: ${result.lng} }</pre>
+                `
+                displayResult(resultHtml)
+            } catch (error) {
+                displayResult(`<strong>❌ Error:</strong> ${error.message}`, true)
+            }
+        }
+
+        async function testMultiple() {
+            const testLocations = [
+                'New York',
+                'Kuala Lumpur',
+                'Tokyo',
+                'London',
+                'Sydney'
+            ]
+
+            displayResult('<div class="loading">⏳ Testing multiple locations...</div>')
+            const results = []
+
+            for (const location of testLocations) {
+                try {
+                    const startTime = Date.now()
+                    const result = await geocodeAddress(location)
+                    const endTime = Date.now()
+                    results.push({
+                        location,
+                        success: true,
+                        result,
+                        duration: endTime - startTime
+                    })
+                } catch (error) {
+                    results.push({
+                        location,
+                        success: false,
+                        error: error.message
+                    })
+                }
+            }
+
+            let resultHtml = '<strong>📊 Multiple Location Test Results:</strong><br><br>'
+            results.forEach((item, index) => {
+                if (item.success) {
+                    resultHtml += `
+                        ${index + 1}. <strong>${item.location}</strong> ✅<br>
+                        &nbsp;&nbsp;Address: ${item.result.formatted_address}<br>
+                        &nbsp;&nbsp;Coords: (${item.result.lat}, ${item.result.lng})<br>
+                        &nbsp;&nbsp;Time: ${item.duration}ms<br><br>
+                    `
+                } else {
+                    resultHtml += `
+                        ${index + 1}. <strong>${item.location}</strong> ❌<br>
+                        &nbsp;&nbsp;Error: ${item.error}<br><br>
+                    `
+                }
+            })
+
+            const successCount = results.filter(r => r.success).length
+            resultHtml += `<strong>Summary:</strong> ${successCount}/${results.length} successful`
+            
+            displayResult(resultHtml)
+        }
+
+        // Auto-test on load
+        window.addEventListener('load', () => {
+            setTimeout(() => {
+                if (window.google && window.google.maps) {
+                    displayResult('<div class="success">✅ Google Maps API loaded successfully! Ready to test.</div>')
+                } else {
+                    displayResult('<div class="error">❌ Google Maps API not loaded. Check your API key.</div>', true)
+                }
+            }, 1000)
+        })
+
+        // Allow Enter key to trigger test
+        document.getElementById('locationInput').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                testGeocoding()
+            }
+        })
+    </script>
+</body>
+</html>
+
