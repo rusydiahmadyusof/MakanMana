@@ -51,10 +51,17 @@ export default function HomePage() {
 
       {state.error && (
         <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-xl text-red-700">
-          <p>⚠️ {state.error}</p>
-          <p className="text-sm mt-2">
-            Make sure your Google Places API key is set in the .env file.
-          </p>
+          <p className="font-semibold mb-2">⚠️ {state.error}</p>
+          <div className="text-sm mt-2 space-y-1">
+            <p>Possible solutions:</p>
+            <ul className="list-disc list-inside ml-2 space-y-1">
+              <li>Restart the dev server: Stop and run <code className="bg-red-100 px-1 rounded">npm run dev</code> again</li>
+              <li>Verify your API key is correct in the <code className="bg-red-100 px-1 rounded">.env</code> file</li>
+              <li>Ensure Places API is enabled in Google Cloud Console</li>
+              <li>Check if billing is enabled on your Google Cloud project</li>
+              <li>If API key has restrictions, allow <code className="bg-red-100 px-1 rounded">localhost:5173</code></li>
+            </ul>
+          </div>
         </div>
       )}
 

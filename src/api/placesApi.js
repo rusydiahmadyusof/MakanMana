@@ -5,6 +5,11 @@ const PLACES_BASE_URL = 'https://maps.googleapis.com/maps/api/place'
 const cache = new Map()
 
 export async function searchNearbyRestaurants(location, filters = {}) {
+  // Check if API key is set
+  if (!GOOGLE_PLACES_API_KEY || GOOGLE_PLACES_API_KEY === 'your_api_key_here') {
+    throw new Error('Google Places API key is not set. Please check your .env file and restart the dev server.')
+  }
+
   const { cuisine, price, rating, search } = filters
   const cacheKey = `${location.lat}_${location.lng}_${JSON.stringify(filters)}`
 
@@ -18,14 +23,34 @@ export async function searchNearbyRestaurants(location, filters = {}) {
     const nearbyUrl = `${PLACES_BASE_URL}/nearbysearch/json?location=${location.lat},${location.lng}&radius=2000&type=restaurant&key=${GOOGLE_PLACES_API_KEY}`
     
     const response = await fetch(nearbyUrl)
+    
+    // Handle network errors
     if (!response.ok) {
-      throw new Error('Failed to fetch restaurants')
+      const errorText = await response.text()
+      try {
+        const errorData = JSON.parse(errorText)
+        throw new Error(errorData.error_message || `HTTP ${response.status}: ${response.statusText}`)
+      } catch (e) {
+        throw new Error(`Failed to fetch restaurants: ${response.status} ${response.statusText}`)
+      }
     }
 
     const data = await response.json()
     
+    // Handle Google API errors
     if (data.status !== 'OK' && data.status !== 'ZERO_RESULTS') {
-      throw new Error(data.error_message || 'API error')
+      let errorMessage = data.error_message || 'API error'
+      
+      // Provide helpful error messages for common issues
+      if (data.status === 'REQUEST_DENIED') {
+        errorMessage = `API Request Denied: ${data.error_message || 'Check if Places API is enabled and API key is valid'}`
+      } else if (data.status === 'INVALID_REQUEST') {
+        errorMessage = `Invalid Request: ${data.error_message || 'Check your location coordinates'}`
+      } else if (data.status === 'OVER_QUERY_LIMIT') {
+        errorMessage = `API Quota Exceeded: ${data.error_message || 'You have exceeded your API quota'}`
+      }
+      
+      throw new Error(errorMessage)
     }
 
     let restaurants = (data.results || []).map(place => ({
